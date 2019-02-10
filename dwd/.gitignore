@@ -1,0 +1,6 @@
+/target/
+/MOSMIX_*.kmz
+/conf
+/.settings
+/.project
+/.classpath
