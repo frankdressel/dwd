@@ -1,0 +1,79 @@
+---
+- name: install dwd-service
+  hosts: server
+  become: true
+ 
+  tasks:
+    - name: install build tools
+      apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+        - default-jdk
+        - maven
+        - unzip  
+
+    - name: Clone current version
+      git:
+        repo: https://github.com/frankdressel/dwd.git
+        dest: /tmp/checkout/dwd
+
+    - name: Build
+      shell: "mvn clean package meecrowave:bundle"
+      args:
+        chdir: /tmp/checkout/dwd
+
+    - name: Add a dwd user
+      user:
+        name: dwd
+        system: yes
+        create_home: no
+
+    - name: Delete dwd directory
+      file:
+        name: /srv/dwd
+        state: absent
+
+    - name: Create dwd directory
+      file:
+        name: /srv/dwd
+        state: directory
+        owner: dwd
+        mode: 0755
+
+    - name: Copy program to srv location
+      unarchive:
+        src: /tmp/checkout/dwd/target/dwd-meecrowave-distribution.zip
+        dest: /srv/dwd
+        owner: dwd
+        mode: 0755
+
+    - name: Fix tomcat secure random delay
+      lineinfile:
+        path: /srv/dwd/dwd-distribution/bin/meecrowave.sh
+        insertafter: '^JAVA_OPTS='
+        line: 'JAVA_OPTS="$JAVA_OPTS -Djava.security.egd=file:/dev/./urandom"'
+
+
+    - name: Fix ownership
+      file:
+        name: /srv/dwd/dwd-distribution
+        owner: dwd
+        recurse: yes
+
+    - name: Copy service script
+      copy:
+        src: dwd.service
+        dest: /etc/systemd/system/dwd.service
+
+    - name: Enable service
+      systemd:
+        name: dwd
+        enabled: true
+
+    - name: Start service
+      systemd:
+        name: dwd
+        state: started
+        daemon_reload: yes
