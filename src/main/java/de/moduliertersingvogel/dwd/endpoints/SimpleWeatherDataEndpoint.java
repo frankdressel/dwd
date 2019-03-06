@@ -41,7 +41,7 @@ public class SimpleWeatherDataEndpoint {
 		return dataservice.getSimpleWeatherData(location).stream()
 				.filter(s -> (s.time.isAfter(now) || s.time.isEqual(now)))
 				.map(s -> new RelativeSimpleWeatherData(s.temperature, s.precipitationProb,
-						(int) Duration.between(now, s.time).get(ChronoUnit.MINUTES)))
+						(int) Duration.between(now, s.time).get(ChronoUnit.SECONDS)/60))
 				.collect(Collectors.toList());
 	}
 
