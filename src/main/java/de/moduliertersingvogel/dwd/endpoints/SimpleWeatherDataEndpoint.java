@@ -31,7 +31,7 @@ public class SimpleWeatherDataEndpoint {
 
 	private static final Logger logger = LogManager.getFormatterLogger("dwd");
 
-	@Path("/{location}/relative")
+	@Path("/relative/{location}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<RelativeSimpleWeatherData> getRelativeSimpleWeatherData(@PathParam("location") String location) {
@@ -45,7 +45,7 @@ public class SimpleWeatherDataEndpoint {
 				.collect(Collectors.toList());
 	}
 
-	@Path("/{location}/absolute")
+	@Path("/absolute/{location}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<AbsoluteSimpleWeatherData> getAbsoluteSimpleWeatherData(@PathParam("location") String location) {
