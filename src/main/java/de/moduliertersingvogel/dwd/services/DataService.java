@@ -21,7 +21,7 @@ import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import de.moduliertersingvogel.dwd.model.SimpleWeatherData;
+import de.moduliertersingvogel.dwd.model.AbsoluteSimpleWeatherData;
 import de.moduliertersingvogel.dwd.services.Parser.KMLParserException;
 
 @ApplicationScoped
@@ -58,11 +58,11 @@ public class DataService {
 		}
 	}
 
-	public List<SimpleWeatherData> getSimpleWeatherData(final String location) {
+	public List<AbsoluteSimpleWeatherData> getSimpleWeatherData(final String location) {
 		logger.debug("Retrieving data for %s.", location);
 
 		if (parser != null) {
-			List<SimpleWeatherData> result = new ArrayList<>();
+			List<AbsoluteSimpleWeatherData> result = new ArrayList<>();
 
 			Map<String, List<Float>> precipitationMap = parser.getPrecipitationMap();
 			if (!precipitationMap.containsKey(location)) {
@@ -76,8 +76,8 @@ public class DataService {
 					logger.error("Data does not match! Got %d entries for precipitation but %d entries for timesteps.",
 							precipitation.size(), timestep.size());
 				} else {
-					List<SimpleWeatherData> data = IntStream.range(0, timestep.size())
-							.mapToObj(index -> new SimpleWeatherData(0, precipitation.get(index), timestep.get(index)))
+					List<AbsoluteSimpleWeatherData> data = IntStream.range(0, timestep.size())
+							.mapToObj(index -> new AbsoluteSimpleWeatherData(0, precipitation.get(index), timestep.get(index)))
 							.collect(Collectors.toList());
 					result = Collections.unmodifiableList(data);
 				}
