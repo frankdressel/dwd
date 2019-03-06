@@ -37,7 +37,7 @@ public class SimpleWeatherDataEndpoint {
 	public List<RelativeSimpleWeatherData> getRelativeSimpleWeatherData(@PathParam("location") String location) {
 		logger.debug("GET simple/%s.", location);
 
-		LocalDateTime now = LocalDateTime.now(ZoneId.of("Berlin"));
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("Europe/Berlin"));
 		return dataservice.getSimpleWeatherData(location).stream()
 				.filter(s -> (s.time.isAfter(now) || s.time.isEqual(now)))
 				.map(s -> new RelativeSimpleWeatherData(s.temperature, s.precipitationProb,
