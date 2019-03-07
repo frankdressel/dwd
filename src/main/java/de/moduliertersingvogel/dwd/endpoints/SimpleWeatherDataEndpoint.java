@@ -14,6 +14,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,18 +33,36 @@ public class SimpleWeatherDataEndpoint {
 
 	private static final Logger logger = LogManager.getFormatterLogger("dwd");
 
-	@Path("/relative/{location}")
+	@Path("/relative/{location}/{relativetime}/precipitation")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<RelativeSimpleWeatherData> getRelativeSimpleWeatherData(@PathParam("location") String location) {
+	public Response getRelativeSimpleWeatherData(@PathParam("location") String location,
+			@PathParam("relativetime") String relativetime) {
 		logger.debug("GET simple/%s.", location);
 
+		final String regextest = "\\d+[hH]";
+		if (!relativetime.matches(regextest)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(String.format("Only %s is allowed as relative time", regextest)).build();
+		}
+		final int hour = Integer.valueOf(relativetime.replaceAll("[hH]", ""));
+
 		LocalDateTime now = LocalDateTime.now(ZoneId.of("Europe/Berlin"));
-		return dataservice.getSimpleWeatherData(location).stream()
-				.filter(s -> (s.time.isAfter(now) || s.time.isEqual(now)))
+		List<AbsoluteSimpleWeatherData> elements = dataservice.getSimpleWeatherData(location).stream()
+				.filter(s -> ((s.time.isAfter(now.plus(hour - 1, ChronoUnit.HOURS))
+						&& s.time.isBefore(now.plus(hour, ChronoUnit.HOURS))) || s.time.isEqual(now))).collect(Collectors.toList());
+
+		if(elements.size() == 0) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(String.format("No data available", regextest)).build();
+		}
+		float average = elements.stream()
 				.map(s -> new RelativeSimpleWeatherData(s.temperature, s.precipitationProb,
-						(int) Duration.between(now, s.time).get(ChronoUnit.SECONDS)/60))
-				.collect(Collectors.toList());
+						(int) Duration.between(now, s.time).get(ChronoUnit.SECONDS) / 60))
+				.map(s -> s.precipitationProb)
+				.reduce(0f, (a, b) -> a + b)/elements.size();
+
+		return Response.ok(average).build();
 	}
 
 	@Path("/absolute/{location}")
