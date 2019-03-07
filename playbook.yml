@@ -75,5 +75,5 @@
     - name: Start service
       systemd:
         name: dwd
-        state: started
+        state: restarted
         daemon_reload: yes
