@@ -40,11 +40,20 @@ public class SimpleWeatherDataEndpoint {
 			@PathParam("relativetime") String relativetime) {
 		logger.debug("GET simple/%s.", location);
 
-		final String regextest = "\\d+[hH]";
-		if (!relativetime.matches(regextest)) {
-			return Response.status(Status.BAD_REQUEST)
-					.entity(String.format("Only %s is allowed as relative time", regextest)).build();
+		final String timetest = "\\d+[hH]";
+		if (relativetime.matches(timetest)) {
+			return getRelativeTimeData(location, relativetime);
 		}
+		final String durationtest = "\\d+-\\d+[hH]";
+		if (relativetime.matches(durationtest)) {
+			return getRelativeDurationData(location, relativetime);
+		}
+		return Response.status(Status.BAD_REQUEST)
+				.entity(String.format("Only %s or %s is allowed as relative time", timetest, durationtest)).build();
+
+	}
+
+	private Response getRelativeTimeData(String location, String relativetime) {
 		final int hour = Integer.valueOf(relativetime.replaceAll("[hH]", ""));
 
 		LocalDateTime now = LocalDateTime.now(ZoneId.of("Europe/Berlin"));
@@ -54,7 +63,7 @@ public class SimpleWeatherDataEndpoint {
 
 		if(elements.size() == 0) {
 			return Response.status(Status.BAD_REQUEST)
-					.entity(String.format("No data available", regextest)).build();
+					.entity(String.format("No data available")).build();
 		}
 		float average = elements.stream()
 				.map(s -> new RelativeSimpleWeatherData(s.temperature, s.precipitationProb,
@@ -63,6 +72,29 @@ public class SimpleWeatherDataEndpoint {
 				.reduce(0f, (a, b) -> a + b)/elements.size();
 
 		return Response.ok(average).build();
+	}
+	
+	private Response getRelativeDurationData(String location, String relativetime) {
+		final String duration = relativetime.replaceAll("[hH]", "");
+		final int start = Integer.valueOf(duration.split("-")[0]);
+		final int end = Integer.valueOf(duration.split("-")[1]);
+
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("Europe/Berlin"));
+		List<AbsoluteSimpleWeatherData> elements = dataservice.getSimpleWeatherData(location).stream()
+				.filter(s -> ((s.time.isAfter(now.plus(start, ChronoUnit.HOURS))
+						&& s.time.isBefore(now.plus(end, ChronoUnit.HOURS))) || s.time.isEqual(now))).collect(Collectors.toList());
+
+		if(elements.size() == 0) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(String.format("No data available")).build();
+		}
+		float max = elements.stream()
+				.map(s -> new RelativeSimpleWeatherData(s.temperature, s.precipitationProb,
+						(int) Duration.between(now, s.time).get(ChronoUnit.SECONDS) / 60))
+				.map(s -> s.precipitationProb)
+				.reduce(0f, (a, b) -> Math.max(a, b));
+
+		return Response.ok(max).build();
 	}
 
 	@Path("/absolute/{location}")
