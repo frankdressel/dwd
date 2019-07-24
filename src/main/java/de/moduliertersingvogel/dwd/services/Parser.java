@@ -124,7 +124,7 @@ public class Parser {
 								return (Float) null;
 							}
 						}).collect(Collectors.toList());
-						precipitationMap.put(placemarkname, Collections.unmodifiableList(values));
+						precipitationMap.put(placemarkname.replaceAll("[ /?]", ""), Collections.unmodifiableList(values));
 					}
 				}
 			};
